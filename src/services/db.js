@@ -1,134 +1,154 @@
-import { openDB } from 'idb';
+const STORAGE_KEYS = {
+    TRANSACTIONS: 'finexo_transactions',
+    RECEIPTS: 'finexo_receipts',
+    BUDGETS: 'finexo_budgets',
+    GOALS: 'finexo_goals',
+    SETTINGS: 'finexo_settings',
+    USER_PROFILE: 'finexo_user_profile',
+    WARRANTIES: 'finexo_warranties',
+    SUBSCRIPTIONS: 'finexo_subscriptions',
+    SHARED_SPACES: 'finexo_shared_spaces',
+    BADGES: 'finexo_badges'
+};
 
-const DB_NAME = 'finexo_db';
-const DB_VERSION = 2; // Incremented version
+// Helper to get parsed data or default
+const getStore = (key, defaultValue = []) => {
+    try {
+        const item = localStorage.getItem(key);
+        if (!item) return defaultValue;
+        const parsed = JSON.parse(item);
+        return parsed === null ? defaultValue : parsed;
+    } catch (e) {
+        console.error(`Error reading ${key} from LocalStorage`, e);
+        return defaultValue;
+    }
+};
 
-export const initDB = async () => {
-    return openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion, newVersion, transaction) {
-            // v1 Stores (ensure they exist if upgrading from scratch)
-            if (!db.objectStoreNames.contains('transactions')) {
-                const txStore = db.createObjectStore('transactions', { keyPath: 'id' });
-                txStore.createIndex('date', 'date');
-                txStore.createIndex('type', 'type');
-                txStore.createIndex('category', 'category');
-            }
-            if (!db.objectStoreNames.contains('budgets')) {
-                db.createObjectStore('budgets', { keyPath: 'category' });
-            }
-            if (!db.objectStoreNames.contains('goals')) {
-                db.createObjectStore('goals', { keyPath: 'id', autoIncrement: true });
-            }
-            if (!db.objectStoreNames.contains('settings')) {
-                db.createObjectStore('settings', { keyPath: 'key' });
-            }
-
-            // v2 Stores (New Features)
-            if (!db.objectStoreNames.contains('receipts')) {
-                const receiptStore = db.createObjectStore('receipts', { keyPath: 'id' });
-                receiptStore.createIndex('createdAt', 'createdAt');
-            }
-            if (!db.objectStoreNames.contains('merchants')) {
-                db.createObjectStore('merchants', { keyPath: 'merchant_token' });
-            }
-            if (!db.objectStoreNames.contains('snapshots')) {
-                db.createObjectStore('snapshots', { keyPath: 'month' });
-            }
-            if (!db.objectStoreNames.contains('sharedSpaces')) {
-                db.createObjectStore('sharedSpaces', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('badges')) {
-                db.createObjectStore('badges', { keyPath: 'id' });
-            }
-        },
-    });
+// Helper to save data
+const saveStore = (key, data) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        console.error(`Error saving ${key} to LocalStorage`, e);
+    }
 };
 
 export const dbService = {
     // --- Transactions ---
     async addTransaction(transaction) {
-        const db = await initDB();
-        return db.put('transactions', transaction);
+        const txs = getStore(STORAGE_KEYS.TRANSACTIONS);
+        txs.push(transaction);
+        saveStore(STORAGE_KEYS.TRANSACTIONS, txs);
+        return transaction;
     },
 
-    async addTransactions(transactions) {
-        const db = await initDB();
-        const tx = db.transaction('transactions', 'readwrite');
-        await Promise.all(transactions.map(t => tx.store.put(t)));
-        await tx.done;
+    async addTransactions(newTransactions) {
+        const txs = getStore(STORAGE_KEYS.TRANSACTIONS);
+        const updated = [...txs, ...newTransactions];
+        saveStore(STORAGE_KEYS.TRANSACTIONS, updated);
+        return updated;
     },
 
     async getAllTransactions() {
-        const db = await initDB();
-        return db.getAll('transactions');
+        return getStore(STORAGE_KEYS.TRANSACTIONS);
     },
 
     async deleteTransaction(id) {
-        const db = await initDB();
-        return db.delete('transactions', id);
+        const txs = getStore(STORAGE_KEYS.TRANSACTIONS);
+        const updated = txs.filter(t => t.id !== id);
+        saveStore(STORAGE_KEYS.TRANSACTIONS, updated);
+        return true;
     },
 
     // --- Receipts ---
     async addReceipt(receipt) {
-        const db = await initDB();
-        return db.put('receipts', receipt);
+        const receipts = getStore(STORAGE_KEYS.RECEIPTS);
+        receipts.push(receipt);
+        saveStore(STORAGE_KEYS.RECEIPTS, receipts);
+        return receipt;
     },
 
     async getAllReceipts() {
-        const db = await initDB();
-        return db.getAll('receipts');
+        return getStore(STORAGE_KEYS.RECEIPTS);
     },
 
     async getReceipt(id) {
-        const db = await initDB();
-        return db.get('receipts', id);
+        const receipts = getStore(STORAGE_KEYS.RECEIPTS);
+        return receipts.find(r => r.id === id);
+    },
+
+    // --- Warranties (NEW) ---
+    async addWarranty(warranty) {
+        const items = getStore(STORAGE_KEYS.WARRANTIES);
+        items.push(warranty);
+        saveStore(STORAGE_KEYS.WARRANTIES, items);
+        return warranty;
+    },
+
+    async getAllWarranties() {
+        return getStore(STORAGE_KEYS.WARRANTIES);
+    },
+
+    // --- Subscriptions (NEW) ---
+    async updateSubscriptions(subs) {
+        saveStore(STORAGE_KEYS.SUBSCRIPTIONS, subs);
+        return subs;
+    },
+
+    async getSubscriptions() {
+        return getStore(STORAGE_KEYS.SUBSCRIPTIONS);
     },
 
     // --- Budgets ---
     async setBudget(category, amount) {
-        const db = await initDB();
-        return db.put('budgets', { category, amount });
+        const budgets = getStore(STORAGE_KEYS.BUDGETS);
+        // Remove existing for this category
+        const filtered = budgets.filter(b => b.category !== category);
+        filtered.push({ category, amount });
+        saveStore(STORAGE_KEYS.BUDGETS, filtered);
+        return { category, amount };
     },
 
     async getAllBudgets() {
-        const db = await initDB();
-        return db.getAll('budgets');
+        return getStore(STORAGE_KEYS.BUDGETS);
     },
 
     // --- Goals ---
     async addGoal(goal) {
-        const db = await initDB();
-        return db.put('goals', goal);
+        const goals = getStore(STORAGE_KEYS.GOALS);
+        goals.push(goal);
+        saveStore(STORAGE_KEYS.GOALS, goals);
+        return goal;
     },
 
     async getAllGoals() {
-        const db = await initDB();
-        return db.getAll('goals');
+        return getStore(STORAGE_KEYS.GOALS);
     },
 
-    // --- Settings / User Data ---
+    // --- Settings / User Profile ---
     async saveSetting(key, value) {
-        const db = await initDB();
-        return db.put('settings', { key, value });
+        const settings = getStore(STORAGE_KEYS.SETTINGS, {});
+        settings[key] = value;
+        saveStore(STORAGE_KEYS.SETTINGS, settings);
+        return value;
     },
 
     async getSetting(key) {
-        const db = await initDB();
-        const result = await db.get('settings', key);
-        return result ? result.value : null;
+        const settings = getStore(STORAGE_KEYS.SETTINGS, {});
+        return settings[key] || null;
+    },
+
+    async saveUserProfile(profile) {
+        saveStore(STORAGE_KEYS.USER_PROFILE, profile);
+        return profile;
+    },
+
+    async getUserProfile() {
+        return getStore(STORAGE_KEYS.USER_PROFILE, null);
     },
 
     // --- DANGER: Clear All Data ---
     async clearAllData() {
-        const db = await initDB();
-        const storeNames = db.objectStoreNames;
-        const tx = db.transaction(storeNames, 'readwrite');
-
-        for (const storeName of storeNames) {
-            await tx.objectStore(storeName).clear();
-        }
-
-        await tx.done;
         localStorage.clear();
         return true;
     }

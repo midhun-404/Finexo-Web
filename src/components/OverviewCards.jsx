@@ -49,7 +49,6 @@ const OverviewCards = () => {
         {
             title: 'Total Income',
             amount: `₹${summary.income.toFixed(2)}`,
-            change: '+12%',
             icon: <TrendingUp size={24} color="#00ff7a" />,
             bg: 'var(--bg-card)',
             textColor: 'var(--text-primary)',
@@ -58,7 +57,6 @@ const OverviewCards = () => {
         {
             title: 'Total Expense',
             amount: `₹${summary.expense.toFixed(2)}`,
-            change: '-5%',
             icon: <TrendingDown size={24} color="#ff007a" />,
             bg: 'var(--bg-card)',
             textColor: 'var(--text-primary)',
@@ -111,17 +109,7 @@ const OverviewCards = () => {
                             >
                                 <Edit2 size={12} /> Adjust
                             </button>
-                        ) : (
-                            <span style={{
-                                fontSize: '0.8rem',
-                                padding: '0.2rem 0.5rem',
-                                borderRadius: '20px',
-                                background: 'rgba(255,255,255,0.1)',
-                                backdropFilter: 'blur(5px)'
-                            }}>
-                                {card.change}
-                            </span>
-                        )}
+                        ) : null}
                     </div>
                     <div>
                         <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '0.5rem' }}>{card.title}</p>

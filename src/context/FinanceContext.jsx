@@ -10,22 +10,43 @@ export const FinanceProvider = ({ children }) => {
     const [initialBalance, setInitialBalance] = useState(0);
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
     const [advice, setAdvice] = useState([]);
+    // New Feature States
+    const [warranties, setWarranties] = useState([]);
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [predictions, setPredictions] = useState([]);
+    const [emotionalInsights, setEmotionalInsights] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // Load initial data from IndexedDB
     useEffect(() => {
         const loadData = async () => {
             try {
-                const txs = await dbService.getAllTransactions();
+                const txs = (await dbService.getAllTransactions()) || [];
                 // Sort by date descending
-                txs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                setTransactions(txs);
+                if (Array.isArray(txs)) {
+                    txs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    setTransactions(txs);
+                } else {
+                    setTransactions([]);
+                }
 
                 const balance = await dbService.getSetting('initialBalance');
                 setInitialBalance(balance || 0);
 
                 const savedAdvice = await dbService.getSetting('advice');
                 setAdvice(savedAdvice || []);
+
+                // Load New Features Data
+                const savedWarranties = (await dbService.getAllWarranties()) || [];
+                setWarranties(Array.isArray(savedWarranties) ? savedWarranties : []);
+
+                const savedSubs = (await dbService.getSubscriptions()) || [];
+                setSubscriptions(Array.isArray(savedSubs) ? savedSubs : []);
+
+                const savedProfile = await dbService.getUserProfile();
+                setUserProfile(savedProfile);
+
             } catch (error) {
                 console.error("Failed to load data from DB:", error);
             } finally {
@@ -80,6 +101,27 @@ export const FinanceProvider = ({ children }) => {
         await dbService.saveSetting('initialBalance', val);
     };
 
+    // --- New Feature Actions ---
+    const addWarranty = async (warranty) => {
+        const newItem = await dbService.addWarranty(warranty);
+        setWarranties(prev => [...prev, newItem]);
+    };
+
+    const updateSubscriptionsList = async (subs) => {
+        await dbService.updateSubscriptions(subs);
+        setSubscriptions(subs);
+    };
+
+    const loginUser = async (profileData) => {
+        await dbService.saveUserProfile(profileData);
+        setUserProfile(profileData);
+    };
+
+    const logoutUser = async () => {
+        await dbService.saveUserProfile(null);
+        setUserProfile(null);
+    };
+
     return (
         <FinanceContext.Provider value={{
             transactions,
@@ -91,7 +133,19 @@ export const FinanceProvider = ({ children }) => {
             addTransactions,
             clearTransactions,
             setFinancialAdvice,
-            updateInitialBalance
+
+            updateInitialBalance,
+            warranties,
+            addWarranty,
+            subscriptions,
+            updateSubscriptionsList,
+            userProfile,
+            loginUser,
+            logoutUser,
+            predictions,
+            setPredictions,
+            emotionalInsights,
+            setEmotionalInsights
         }}>
             {children}
         </FinanceContext.Provider>

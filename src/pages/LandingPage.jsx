@@ -57,11 +57,11 @@ const LandingPage = () => {
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent'
                         }}>
-                            Master Your <br />
-                            <span style={{ color: 'var(--primary-color)', WebkitTextFillColor: 'var(--primary-color)' }}>Financial Future</span>
+                            Finexo — Your <br />
+                            <span style={{ color: 'var(--primary-color)', WebkitTextFillColor: 'var(--primary-color)' }}>AI-Powered Finance Brain</span>
                         </h1>
                         <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '2.5rem', lineHeight: '1.6' }}>
-                            Track expenses, manage budgets, and grow your savings with Finexo's intelligent financial dashboard.
+                            Predict life events, track warranties, stop bad subscriptions, detect fraud, and understand your emotions behind spending — all directly in your browser.
                         </p>
 
                         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -82,24 +82,9 @@ const LandingPage = () => {
                                         gap: '0.5rem'
                                     }}
                                 >
-                                    Start Free <ArrowRight size={20} />
+                                    Start Smarter Money Management <ArrowRight size={20} />
                                 </motion.button>
                             </Link>
-                            <motion.button
-                                whileHover={{ scale: 1.05, background: 'rgba(255,255,255,0.1)' }}
-                                whileTap={{ scale: 0.95 }}
-                                style={{
-                                    padding: '1rem 2rem',
-                                    background: 'transparent',
-                                    border: '1px solid var(--text-secondary)',
-                                    color: 'white',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontSize: '1.1rem',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                Learn More
-                            </motion.button>
                         </div>
                     </motion.div>
 
@@ -126,61 +111,8 @@ const LandingPage = () => {
                             {/* Mock Charts/UI Elements */}
                             <div style={{ textAlign: 'center' }}>
                                 <PieChart size={120} color="var(--secondary-color)" style={{ filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.4))' }} />
-                                <h3 style={{ marginTop: '2rem', fontSize: '1.5rem' }}>Smart Analytics</h3>
+                                <h3 style={{ marginTop: '2rem', fontSize: '1.5rem' }}>AI Insights</h3>
                             </div>
-
-                            {/* Floating Cards */}
-                            <motion.div
-                                animate={{ y: [0, -20, 0] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                                style={{
-                                    position: 'absolute',
-                                    top: '10%',
-                                    right: '-5%',
-                                    background: 'var(--bg-secondary)',
-                                    padding: '1rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: 'var(--border-glass)',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem'
-                                }}
-                            >
-                                <div style={{ background: 'rgba(0,255,122,0.1)', padding: '0.5rem', borderRadius: '50%' }}>
-                                    <TrendingUp color="#00ff7a" size={24} />
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Income</p>
-                                    <p style={{ fontWeight: 'bold' }}>+₹4,250.00</p>
-                                </div>
-                            </motion.div>
-
-                            <motion.div
-                                animate={{ y: [0, 20, 0] }}
-                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                                style={{
-                                    position: 'absolute',
-                                    bottom: '15%',
-                                    left: '-5%',
-                                    background: 'var(--bg-secondary)',
-                                    padding: '1rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: 'var(--border-glass)',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem'
-                                }}
-                            >
-                                <div style={{ background: 'rgba(255,0,122,0.1)', padding: '0.5rem', borderRadius: '50%' }}>
-                                    <Wallet color="#ff007a" size={24} />
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Savings</p>
-                                    <p style={{ fontWeight: 'bold' }}>₹12,800.00</p>
-                                </div>
-                            </motion.div>
                         </div>
                     </motion.div>
                 </div>
@@ -189,29 +121,52 @@ const LandingPage = () => {
             {/* Features Section */}
             <section style={{ padding: '5rem 2rem', position: 'relative' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '4rem' }}>Why Choose Finexo?</h2>
+                    <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '4rem' }}>Next-Gen AI Finance Features</h2>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                         {[
-                            { icon: <Shield size={40} color="var(--primary-color)" />, title: "Bank-Grade Security", desc: "Your financial data is encrypted and secure with us." },
-                            { icon: <PieChart size={40} color="var(--secondary-color)" />, title: "Visual Analytics", desc: "Understand your spending habits with intuitive charts." },
-                            { icon: <Wallet size={40} color="var(--accent-color)" />, title: "Smart Budgeting", desc: "Set limits and save more with AI-powered suggestions." }
+                            { icon: <TrendingUp size={30} color="#6c63ff" />, title: "AI Life-Event Predictor", desc: "Predicts travel, moving, or stress based on spending patterns." },
+                            { icon: <Shield size={30} color="#00ff7a" />, title: "Warranty Tracker", desc: "Auto-extracts warranty info from receipts using OCR." },
+                            { icon: <Wallet size={30} color="#ff007a" />, title: "Subscription Auto-Killer", desc: "Finds hidden recurring charges and helps you cancel them." },
+                            { icon: <PieChart size={30} color="#ffae00" />, title: "Emotional Intelligence", desc: "Detects stress-spending and impulse buying habits." },
+                            { icon: <Shield size={30} color="#ff4d4d" />, title: "Fraud & Custom Alerts", desc: "Instant warnings for duplicate or unusual charges." },
+                            { icon: <TrendingUp size={30} color="#00d4ff" />, title: "Future Projection", desc: "AI forecasts your financial health 6-12 months ahead." },
                         ].map((feature, index) => (
                             <motion.div
                                 key={index}
                                 whileHover={{ y: -10 }}
                                 style={{
                                     background: 'var(--bg-card)',
-                                    padding: '2rem',
+                                    padding: '1.5rem',
                                     borderRadius: 'var(--radius-lg)',
                                     border: 'var(--border-glass)',
                                     backdropFilter: 'blur(10px)'
                                 }}
                             >
-                                <div style={{ marginBottom: '1.5rem' }}>{feature.icon}</div>
-                                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>{feature.title}</h3>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>{feature.desc}</p>
+                                <div style={{ marginBottom: '1rem' }}>{feature.icon}</div>
+                                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{feature.title}</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>{feature.desc}</p>
                             </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* FAQ Section */}
+            <section style={{ padding: '5rem 2rem', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '3rem' }}>Frequently Asked Questions</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        {[
+                            { q: "Does Finexo store my data online?", a: "No. Everything is stored safely in your browser using LocalStorage." },
+                            { q: "What makes Finexo different?", a: "It uses AI to predict life events, detect emotions, track warranties, and prevent fraud." },
+                            { q: "How does the AI Life-Event Predictor work?", a: "It analyzes your expense patterns and predicts future trends like travel or stress phases." },
+                            { q: "Will the AI see or store my data?", a: "The AI processes only the text you send; no data is stored anywhere." }
+                        ].map((faq, i) => (
+                            <div key={i} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '12px', border: 'var(--border-glass)' }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{faq.q}</h4>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{faq.a}</p>
+                            </div>
                         ))}
                     </div>
                 </div>

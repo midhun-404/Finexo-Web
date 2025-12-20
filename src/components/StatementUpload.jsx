@@ -61,7 +61,7 @@ const StatementUpload = () => {
                 } catch (error) {
                     console.error(error);
                     setStatus('error');
-                    setErrorMsg('Failed to analyze statement. Please try again.');
+                    setErrorMsg(error.message || 'Failed to analyze statement. Please try again.');
                 }
             };
             reader.readAsDataURL(file);
