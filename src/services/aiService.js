@@ -4,6 +4,8 @@ const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
 if (!API_KEY) {
     console.error("VITE_GOOGLE_API_KEY is not set. AI features will not work.");
+} else {
+    console.log("VITE_GOOGLE_API_KEY loaded:", API_KEY.substring(0, 5) + "...");
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
