@@ -27,13 +27,7 @@ export const validateImage = async (imageFile) => {
             }
         });
 
-        // Check for long number sequences (Disabled to allow Transaction IDs in cropped tables)
-        /*
-        const numberMatches = text.match(SENSITIVE_NUMBER_REGEX);
-        if (numberMatches) {
-            detectedIssues.push(`Found potential sensitive number sequence (${numberMatches.length} detected)`);
-        }
-        */
+
 
         const isValid = detectedIssues.length === 0;
 
