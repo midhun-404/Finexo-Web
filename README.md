@@ -1,5 +1,4 @@
-# Finexo
-
+# Finexo - AI Powered Finance Tracker (Deployed)
 AI-Powered Financial Assistant.
 
 ## Deployment
