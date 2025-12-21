@@ -1,14 +1,26 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const WORKER_URL = window.location.origin + "/api/ai";
 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+// Helper for Secure AI Calls via Worker
+const callWorkerAI = async (action, payload, modelName = "gemini-1.5-flash") => {
+    try {
+        const response = await fetch("/api/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, payload, modelName })
+        });
 
-if (!API_KEY) {
-    console.error("VITE_GOOGLE_API_KEY is not set. AI features will not work.");
-} else {
-    console.log("VITE_GOOGLE_API_KEY loaded:", API_KEY.substring(0, 5) + "...");
-}
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Worker request failed");
+        }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+        const data = await response.json();
+        return data.text;
+    } catch (error) {
+        console.error("AI Service Error:", error);
+        throw error;
+    }
+};
 
 const MODELS = [
     "gemini-2.5-flash",
@@ -21,9 +33,7 @@ const MODELS = [
 const safeAIRequest = async (prompt, fallbackValue) => {
     for (const modelName of MODELS) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
+            const text = await callWorkerAI("generateContent", prompt, modelName);
 
             // Robust JSON extraction
             const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
@@ -42,8 +52,7 @@ export const analyzeStatement = async (fileBase64) => {
 
     for (const modelName of MODELS) {
         try {
-            console.log(`Attempting analysis with model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
+            console.log(`Attempting analysis with model: ${modelName} via Worker`);
             const base64Data = fileBase64.split(',')[1];
             const mimeType = fileBase64.split(';')[0].split(':')[1];
 
@@ -89,10 +98,8 @@ export const analyzeStatement = async (fileBase64) => {
                 }
             };
 
-            const result = await model.generateContent([prompt, imagePart]);
-            const response = await result.response;
-            const text = response.text();
-            console.log("Raw AI Response:", text); // Debug log
+            const text = await callWorkerAI("generateContent", [prompt, imagePart], modelName);
+            console.log("Raw AI Response from Worker:", text); // Debug log
 
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             const cleanText = jsonMatch ? jsonMatch[0] : text;
@@ -127,9 +134,7 @@ export const chatWithFelica = async (message, contextData) => {
 
     for (const modelName of MODELS) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent([systemPrompt, message]);
-            return result.response.text();
+            return await callWorkerAI("generateContent", [systemPrompt, message], modelName);
         } catch (error) {
             console.error("Felica error:", error);
         }
@@ -147,10 +152,9 @@ export const detectSubscriptions = async (transactions) => {
     `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: MODELS[0] });
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(text);
+        const text = await callWorkerAI("generateContent", prompt, MODELS[0]);
+        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanText);
     } catch (e) {
         return [];
     }
@@ -159,7 +163,6 @@ export const detectSubscriptions = async (transactions) => {
 export const getFinancialAdvice = async (transactions) => {
     for (const modelName of MODELS) {
         try {
-            const model = genAI.getGenerativeModel({ model: modelName });
             const prompt = `
             You are a highly skilled financial advisor. Analyze the following transaction history and provide 3 specific, actionable, and personalized tips.
             Transactions: ${JSON.stringify(transactions.slice(0, 50))}
@@ -169,15 +172,15 @@ export const getFinancialAdvice = async (transactions) => {
             [ "Tip 1...", "Tip 2...", "Tip 3..." ]
             `;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(text);
+            const text = await callWorkerAI("generateContent", prompt, modelName);
+            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanText);
         } catch (error) {
             console.error(`Error getting advice with ${modelName}:`, error);
         }
     }
     return ["Could not generate advice at this time."];
-}; // Added missing closing brace
+};
 
 // --- 4. NEW AI FEATURES ---
 
