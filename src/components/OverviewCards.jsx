@@ -4,59 +4,30 @@ import { Wallet, TrendingUp, TrendingDown, Edit2 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 
 const OverviewCards = () => {
-    const { summary, addTransaction } = useFinance();
-    const [isEditingBalance, setIsEditingBalance] = useState(false);
-    const [newBalance, setNewBalance] = useState('');
+    const { summary, addTransaction, formatCurrency } = useFinance();
+    // Edit functionality removed for Monthly View consistency
 
-    const handleBalanceUpdate = () => {
-        if (!newBalance) {
-            setIsEditingBalance(false);
-            return;
-        }
-
-        const actualBalance = parseFloat(newBalance);
-        const currentBalance = summary.balance;
-        const difference = actualBalance - currentBalance;
-
-        if (difference !== 0) {
-            addTransaction({
-                id: Date.now(),
-                title: 'Balance Adjustment',
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-                amount: difference > 0 ? `+₹${difference.toFixed(2)}` : `-₹${Math.abs(difference).toFixed(2)}`,
-                type: difference > 0 ? 'income' : 'expense',
-                category: 'Adjustment',
-                color: '#888888',
-                icon: 'Settings'
-            });
-            alert('Balance updated! An adjustment transaction has been added.');
-        }
-
-        setIsEditingBalance(false);
-        setNewBalance('');
-    };
 
     const cards = [
         {
-            title: 'Total Balance',
-            amount: `₹${summary.balance.toFixed(2)}`,
-            change: 'Edit',
-            icon: <Wallet size={24} color="white" />,
+            title: 'Monthly Income',
+            amount: formatCurrency(summary.income),
+            icon: <TrendingUp size={24} color="white" />,
             bg: 'var(--gradient-main)',
             textColor: 'white',
-            isEditable: true
+            isEditable: false
         },
         {
-            title: 'Total Income',
-            amount: `₹${summary.income.toFixed(2)}`,
-            icon: <TrendingUp size={24} color="#00ff7a" />,
+            title: 'Net Savings',
+            amount: formatCurrency(summary.balance),
+            icon: <Wallet size={24} color="#00ff7a" />,
             bg: 'var(--bg-card)',
             textColor: 'var(--text-primary)',
             iconBg: 'rgba(0, 255, 122, 0.1)'
         },
         {
             title: 'Total Expense',
-            amount: `₹${summary.expense.toFixed(2)}`,
+            amount: formatCurrency(summary.expense),
             icon: <TrendingDown size={24} color="#ff007a" />,
             bg: 'var(--bg-card)',
             textColor: 'var(--text-primary)',

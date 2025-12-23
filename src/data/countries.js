@@ -1,0 +1,22 @@
+export const countries = [
+    { name: "United States", code: "US", currency: "US Dollar", currencySymbol: "$", currencyCode: "USD" },
+    { name: "India", code: "IN", currency: "Indian Rupee", currencySymbol: "₹", currencyCode: "INR" },
+    { name: "United Kingdom", code: "GB", currency: "British Pound", currencySymbol: "£", currencyCode: "GBP" },
+    { name: "Eurozone", code: "EU", currency: "Euro", currencySymbol: "€", currencyCode: "EUR" },
+    { name: "Canada", code: "CA", currency: "Canadian Dollar", currencySymbol: "C$", currencyCode: "CAD" },
+    { name: "Australia", code: "AU", currency: "Australian Dollar", currencySymbol: "A$", currencyCode: "AUD" },
+    { name: "Japan", code: "JP", currency: "Japanese Yen", currencySymbol: "¥", currencyCode: "JPY" },
+    { name: "China", code: "CN", currency: "Chinese Yuan", currencySymbol: "¥", currencyCode: "CNY" },
+    { name: "Switzerland", code: "CH", currency: "Swiss Franc", currencySymbol: "CHF", currencyCode: "CHF" },
+    { name: "New Zealand", code: "NZ", currency: "New Zealand Dollar", currencySymbol: "NZ$", currencyCode: "NZD" },
+    { name: "Singapore", code: "SG", currency: "Singapore Dollar", currencySymbol: "S$", currencyCode: "SGD" },
+    { name: "Hong Kong", code: "HK", currency: "Hong Kong Dollar", currencySymbol: "HK$", currencyCode: "HKD" },
+    { name: "South Korea", code: "KR", currency: "South Korean Won", currencySymbol: "₩", currencyCode: "KRW" },
+    { name: "Brazil", code: "BR", currency: "Brazilian Real", currencySymbol: "R$", currencyCode: "BRL" },
+    { name: "Russia", code: "RU", currency: "Russian Ruble", currencySymbol: "₽", currencyCode: "RUB" },
+    { name: "South Africa", code: "ZA", currency: "South African Rand", currencySymbol: "R", currencyCode: "ZAR" },
+    { name: "Mexico", code: "MX", currency: "Mexican Peso", currencySymbol: "Mex$", currencyCode: "MXN" },
+    { name: "United Arab Emirates", code: "AE", currency: "UAE Dirham", currencySymbol: "AED", currencyCode: "AED" },
+    { name: "Saudi Arabia", code: "SA", currency: "Saudi Riyal", currencySymbol: "SAR", currencyCode: "SAR" },
+    { name: "Turkey", code: "TR", currency: "Turkish Lira", currencySymbol: "₺", currencyCode: "TRY" }
+];

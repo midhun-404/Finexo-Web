@@ -5,14 +5,13 @@ import { analyzeStatement } from '../services/aiService';
 import { validateImage } from '../services/privacyService';
 import { useFinance } from '../context/FinanceContext';
 import ReceiptScannerModal from './ReceiptScannerModal';
+import ManualTransactionForm from './ManualTransactionForm';
 
 const StatementUpload = () => {
-    const { addTransactions, addTransaction, setFinancialAdvice } = useFinance();
+    const { replaceTransactions, addTransaction, setFinancialAdvice } = useFinance();
     const [status, setStatus] = useState('idle'); // idle, validating, analyzing, success, error
     const [errorMsg, setErrorMsg] = useState('');
     const [privacyIssues, setPrivacyIssues] = useState([]);
-    const [manualEntry, setManualEntry] = useState({ title: '', amount: '', date: '', type: 'expense' });
-    const [showManualForm, setShowManualForm] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const handleFileUpload = async (e) => {
@@ -49,7 +48,7 @@ const StatementUpload = () => {
                             icon: 'ShoppingBag',
                             color: tx.type === 'income' ? '#00ff7a' : '#ff007a'
                         }));
-                        await addTransactions(enhancedTransactions);
+                        await replaceTransactions(enhancedTransactions);
                     }
 
                     if (result.advice) {
@@ -73,29 +72,7 @@ const StatementUpload = () => {
         }
     };
 
-    const handleManualSubmit = async (e) => {
-        e.preventDefault();
-        if (!manualEntry.title || !manualEntry.amount) return;
 
-        const amountValue = parseFloat(manualEntry.amount);
-        const formattedAmount = manualEntry.type === 'expense'
-            ? `-₹${Math.abs(amountValue).toFixed(2)}`
-            : `+₹${Math.abs(amountValue).toFixed(2)}`;
-
-        await addTransaction({
-            id: Date.now(),
-            title: manualEntry.title,
-            date: manualEntry.date || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            amount: formattedAmount,
-            type: manualEntry.type,
-            color: manualEntry.type === 'income' ? '#00ff7a' : '#ff007a',
-            icon: 'Edit',
-            category: 'Manual'
-        });
-
-        setManualEntry({ title: '', amount: '', date: '', type: 'expense' });
-        setShowManualForm(false);
-    };
 
     return (
         <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -205,70 +182,14 @@ const StatementUpload = () => {
                 </p>
             </motion.div>
 
-            {/* Manual Entry Section */}
+            {/* Manual Entry Section (Replaced Quick Add) */}
             <div style={{
                 flex: 1,
                 minWidth: '300px',
-                background: 'var(--bg-card)',
-                padding: '1.5rem',
-                borderRadius: 'var(--radius-lg)',
-                border: 'var(--border-glass)'
+                display: 'flex',
+                flexDirection: 'column'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ fontSize: '1.1rem' }}>Quick Add</h3>
-                    <button
-                        onClick={() => setShowManualForm(!showManualForm)}
-                        style={{
-                            background: 'var(--primary-color)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <Plus size={18} color="white" />
-                    </button>
-                </div>
-
-                {showManualForm ? (
-                    <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <input
-                            type="text"
-                            placeholder="Expense Name (e.g. Lunch)"
-                            value={manualEntry.title}
-                            onChange={(e) => setManualEntry({ ...manualEntry, title: e.target.value })}
-                            style={{ padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-                        />
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                type="number"
-                                placeholder="Amount"
-                                value={manualEntry.amount}
-                                onChange={(e) => setManualEntry({ ...manualEntry, amount: e.target.value })}
-                                style={{ flex: 1, padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-                            />
-                            <select
-                                value={manualEntry.type}
-                                onChange={(e) => setManualEntry({ ...manualEntry, type: e.target.value })}
-                                style={{ padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
-                            >
-                                <option value="expense">Expense</option>
-                                <option value="income">Income</option>
-                            </select>
-                        </div>
-                        <button type="submit" style={{ padding: '0.8rem', borderRadius: 'var(--radius-md)', background: 'var(--gradient-main)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
-                            Add Transaction
-                        </button>
-                    </form>
-                ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        Click + to add a manual transaction
-                    </div>
-                )}
+                <ManualTransactionForm />
             </div>
 
             <ReceiptScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} />

@@ -6,7 +6,7 @@ import { ArrowRight, TrendingUp } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 const AnalyticsPreview = () => {
-    const { transactions } = useFinance();
+    const { transactions, formatCurrency } = useFinance();
 
     // 1. Calculate Category Data for Progress Bars
     const categoryTotals = transactions
@@ -107,7 +107,7 @@ const AnalyticsPreview = () => {
                                 <RechartsTooltip
                                     contentStyle={{ backgroundColor: '#333', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '0.8rem' }}
                                     itemStyle={{ color: '#fff' }}
-                                    formatter={(value) => [`₹${value}`, 'Amount']}
+                                    formatter={(value) => [`${formatCurrency(value)}`, 'Amount']}
                                     labelStyle={{ display: 'none' }}
                                 />
                             </LineChart>

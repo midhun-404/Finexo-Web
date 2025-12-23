@@ -3,7 +3,7 @@ import { AlertOctagon } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 
 const FraudAlerts = () => {
-    const { transactions } = useFinance();
+    const { transactions, formatCurrency } = useFinance();
 
     const alerts = useMemo(() => {
         const found = [];
@@ -13,18 +13,22 @@ const FraudAlerts = () => {
         transactions.forEach(tx => {
             const key = `${tx.date}-${tx.amount}-${tx.title}`;
             if (seen.has(key)) {
-                found.push({ type: 'duplicate', message: `Potential Duplicate: ${tx.title} (${tx.amount})` });
+                // Re-format amount to ensure correct symbol
+                const val = parseFloat(tx.amount.replace(/[^0-9.-]+/g, ""));
+                const fmt = formatCurrency(Math.abs(val));
+                found.push({ type: 'duplicate', message: `Potential Duplicate: ${tx.title} (${val < 0 ? '-' : ''}${fmt})` });
             }
             seen.add(key);
 
             // Check for odd amounts > 5000 (simple heuristic)
             const amt = parseFloat(tx.amount.replace(/[^0-9.-]+/g, ""));
             if (Math.abs(amt) > 5000 && tx.type === 'expense') {
-                found.push({ type: 'high_value', message: `Unusually High Expense: ${tx.title} (${tx.amount})` });
+                const fmt = formatCurrency(Math.abs(amt));
+                found.push({ type: 'high_value', message: `Unusually High Expense: ${tx.title} (${fmt})` });
             }
         });
         return found;
-    }, [transactions]);
+    }, [transactions, formatCurrency]);
 
     if (alerts.length === 0) return null;
 

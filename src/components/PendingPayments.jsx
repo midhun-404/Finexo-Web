@@ -2,10 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Clock } from 'lucide-react';
 
+import { useFinance } from '../context/FinanceContext';
+
 const PendingPayments = () => {
+    const { formatCurrency } = useFinance();
     const payments = [
-        { id: 1, title: 'Netflix Subscription', due: 'Due Tomorrow', amount: '₹15.99' },
-        { id: 2, title: 'Car Insurance', due: 'Due in 3 days', amount: '₹145.00' },
+        { id: 1, title: 'Netflix Subscription', due: 'Due Tomorrow', amount: 15.99 },
+        { id: 2, title: 'Car Insurance', due: 'Due in 3 days', amount: 145.00 },
     ];
 
     return (
@@ -35,7 +38,7 @@ const PendingPayments = () => {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                             <span style={{ fontWeight: '600' }}>{payment.title}</span>
-                            <span style={{ fontWeight: 'bold' }}>{payment.amount}</span>
+                            <span style={{ fontWeight: 'bold' }}>{formatCurrency(payment.amount)}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--accent-color)' }}>
                             <Clock size={14} />

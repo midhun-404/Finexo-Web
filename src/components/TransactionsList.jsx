@@ -12,7 +12,7 @@ const iconMap = {
 };
 
 const TransactionsList = () => {
-    const { transactions } = useFinance();
+    const { transactions, formatCurrency } = useFinance();
 
     return (
         <div style={{
@@ -69,7 +69,11 @@ const TransactionsList = () => {
                                 fontWeight: 'bold',
                                 color: (tx.amount && tx.amount.toString().startsWith('+')) ? 'var(--text-accent)' : 'var(--text-primary)'
                             }}>
-                                {tx.amount}
+                                {(() => {
+                                    const val = parseFloat(tx.amount.replace(/[^0-9.-]+/g, ""));
+                                    const formatted = formatCurrency(Math.abs(val));
+                                    return val > 0 ? `+${formatted}` : `-${formatted}`;
+                                })()}
                             </span>
                         </motion.div>
                     ))}

@@ -1,185 +1,183 @@
-const WORKER_URL = window.location.origin + "/api/ai";
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL_NAME = "qwen/qwen-2.5-vl-7b-instruct:free";
 
-// Helper for Secure AI Calls via Worker
-const callWorkerAI = async (action, payload, modelName = "gemini-1.5-flash") => {
+// Helper for OpenRouter API Calls
+const callOpenRouter = async (messages, functions = null) => {
     try {
-        const response = await fetch("/api/ai", {
+        const payload = {
+            model: MODEL_NAME,
+            messages: messages,
+            // Qwen 2.5 VL supports JSON mode via strict prompt instruction usually, 
+            // but we'll try to keep it simple. OpenRouter auto-maps standard parameters.
+        };
+
+        const response = await fetch(OPENROUTER_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action, payload, modelName })
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "HTTP-Referer": window.location.origin, // Required by OpenRouter for free tier
+                "X-Title": "Finexo App",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || "Worker request failed");
+            throw new Error(errorData.error?.message || `OpenRouter API failed: ${response.status}`);
         }
 
         const data = await response.json();
-        return data.text;
+        return data.choices[0].message.content;
+
     } catch (error) {
         console.error("AI Service Error:", error);
         throw error;
     }
 };
 
-const MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-];
+// Helper to reliably parse JSON response
+const extractJSON = (text) => {
+    try {
+        // First try direct parse
+        return JSON.parse(text);
+    } catch (e) {
+        // Try extracting code block
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) ||
+            text.match(/\{[\s\S]*\}/) ||
+            text.match(/\[[\s\S]*\]/);
 
-// Helper for Robust AI Calls (Defined first to ensure availability)
-const safeAIRequest = async (prompt, fallbackValue) => {
-    for (const modelName of MODELS) {
-        try {
-            const text = await callWorkerAI("generateContent", prompt, modelName);
-
-            // Robust JSON extraction
-            const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-            const cleanText = jsonMatch ? jsonMatch[0] : text;
-            return JSON.parse(cleanText);
-        } catch (error) {
-            console.warn(`Model ${modelName} failed:`, error);
+        if (jsonMatch) {
+            try {
+                // If regex matched a group (like the code block content), use that, else use the whole match
+                const content = jsonMatch[1] ? jsonMatch[1] : jsonMatch[0];
+                return JSON.parse(content);
+            } catch (k) {
+                console.warn("Failed to extract JSON from markdown");
+            }
         }
+        console.warn("Could not parse JSON response:", text);
+        return null;
     }
-    return fallbackValue;
 };
 
 // --- 1. Statement Analysis (Vision) ---
 export const analyzeStatement = async (fileBase64) => {
-    let lastError;
+    const prompt = `
+    You are a highly skilled financial assistant. Your task is to analyze the provided bank statement image and extract transaction details.
 
-    for (const modelName of MODELS) {
-        try {
-            console.log(`Attempting analysis with model: ${modelName} via Worker`);
-            const base64Data = fileBase64.split(',')[1];
-            const mimeType = fileBase64.split(';')[0].split(':')[1];
+    IMPORTANT:
+    - Focus ONLY on the transaction table.
+    - Extract Date, Description, Amount (with currency symbol, prefix - for expense, + for income), Type (income/expense), and Category.
+    - LOGIC RULES FOR CLASSIFICATION:
+        - "TRANSFER TO" or similar wording (e.g. "To User", "Paid to") means money leaving the account -> CLASSIFY AS EXPENSE (DEBIT).
+        - "TRANSFER FROM" or similar wording (e.g. "From User", "Received from") means money entering the account -> CLASSIFY AS INCOME (CREDIT).
+        - Correctly apply the negative sign (-) for expenses and positive sign (+) for income based on this logic.
+    - Provide brief financial advice based on the data.
 
-            const prompt = `
-            You are a highly skilled financial assistant. Your task is to analyze the provided bank statement image and extract transaction details with high precision.
-            
-            IMPORTANT:
-            - **Focus ONLY on the transaction table.** Ignore any other text, headers, or footers outside the table.
-            - If headers are present in the crop, use them to identify columns but do not extract them as a transaction.
-            - This is a cropped image of a transaction table, so trust the content is relevant.
-
-            INSTRUCTIONS:
-            1.  **Identify Transactions**: Look for all financial transactions listed in the table.
-            2.  **Extract Details**: For each transaction, extract:
-                -   **Date**: The date of the transaction. Format it strictly as "MMM DD, YYYY" (e.g., "Dec 01, 2025").
-                -   **Description**: The description or merchant name.
-                -   **Amount**: The transaction amount. Ensure you include the currency symbol (e.g., ₹, $, €). Prefix expenses with "-" and income with "+".
-                -   **Type**: Classify as "income" (deposits, salary, refunds) or "expense" (purchases, withdrawals, fees).
-                -   **Category**: Assign a category based on the description (e.g., "Food", "Transport", "Salary", "Utilities", "Shopping", "Transfer", "Subscription").
-            3.  **Financial Advice**: Based on the extracted transactions, provide a brief, actionable piece of financial advice (1-2 sentences).
-
-            OUTPUT FORMAT:
-            Return ONLY a valid JSON object with the following structure. Do not include markdown formatting.
+    OUTPUT FORMAT:
+    Return ONLY a valid JSON object. No Markdown.
+    {
+        "transactions": [
             {
-                "transactions": [
-                    {
-                        "id": "unique_id_1",
-                        "title": "Transaction Description",
-                        "date": "MMM DD, YYYY",
-                        "amount": "-₹500.00",
-                        "type": "expense",
-                        "category": "Food"
-                    }
-                ],
-                "advice": "Your financial advice here."
+                "id": "unique_id",
+                "title": "Merchant Name/Description",
+                "date": "MMM DD, YYYY",
+                "amount": "-$50.00",
+                "type": "expense",
+                "category": "Food/Transfer"
             }
-            `;
-
-            const imagePart = {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: mimeType
-                }
-            };
-
-            const text = await callWorkerAI("generateContent", [prompt, imagePart], modelName);
-            console.log("Raw AI Response from Worker:", text); // Debug log
-
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            const cleanText = jsonMatch ? jsonMatch[0] : text;
-
-            return JSON.parse(cleanText);
-
-        } catch (error) {
-            console.error(`Error analyzing statement with ${modelName}:`, error);
-            lastError = error;
-        }
+        ],
+        "advice": "Short advice string."
     }
-    throw lastError || new Error("All models failed to analyze the statement.");
+    `;
+
+    // Construct Multimodal Message
+    const messages = [
+        {
+            role: "user",
+            content: [
+                { type: "text", text: prompt },
+                {
+                    type: "image_url",
+                    image_url: {
+                        url: fileBase64 // OpenRouter/Qwen supports data URI
+                    }
+                }
+            ]
+        }
+    ];
+
+    try {
+        const responseText = await callOpenRouter(messages);
+        const data = extractJSON(responseText);
+        if (!data) throw new Error("Invalid JSON response from AI");
+        return data;
+    } catch (error) {
+        console.error("Statement Analysis Failed:", error);
+        throw error;
+    }
 };
 
 // --- 2. Felica Chatbot ---
 export const chatWithFelica = async (message, contextData) => {
     const systemPrompt = `
-    You are Felica, an exclusive financial assistant for the Finexo app. 
-    Your goal is to help users manage their finances, save money, and understand their spending habits.
+    You are Felica, an exclusive financial assistant for the Finexo app.
     
     CONTEXT:
     User's recent transactions: ${JSON.stringify(contextData.transactions.slice(0, 20))}
     User's current balance: ${contextData.balance}
     
     RULES:
-    1. Answer ONLY queries related to the user's finances, Finexo app features, or general financial advice.
-    2. If the user asks about anything else (e.g., "Who is the president?", "Write a poem"), politely refuse and say you only discuss finances.
-    3. Be friendly, encouraging, and professional.
-    4. Use the provided context to give personalized answers.
-    5. Keep answers concise (under 3 sentences unless detailed analysis is asked).
+    1. Answer ONLY queries related to finances or the app.
+    2. Be friendly, encouraging, and professional.
+    3. Keep answers concise (<3 sentences).
     `;
 
-    for (const modelName of MODELS) {
-        try {
-            return await callWorkerAI("generateContent", [systemPrompt, message], modelName);
-        } catch (error) {
-            console.error("Felica error:", error);
-        }
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+    ];
+
+    try {
+        return await callOpenRouter(messages);
+    } catch (error) {
+        return "I'm having trouble connecting to my financial brain right now. Please try again.";
     }
-    return "I'm having trouble connecting to my financial brain right now. Please try again.";
 };
 
 // --- 3. Advanced Analysis Features ---
 
 export const detectSubscriptions = async (transactions) => {
     const prompt = `
-    Analyze these transactions and identify potential recurring subscriptions (e.g., Netflix, Spotify, Amazon Prime, Gym, Internet).
-    Return a JSON array of objects with { name, amount, frequency, likelihood }.
+    Analyze these transactions and identify recurring subscriptions.
     Transactions: ${JSON.stringify(transactions)}
+    Output JSON array: [{ "name": "Netflix", "amount": "15.00", "frequency": "Monthly", "likelihood": "High" }]
+    Return ONLY JSON.
     `;
 
     try {
-        const text = await callWorkerAI("generateContent", prompt, MODELS[0]);
-        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanText);
+        const text = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(text) || [];
     } catch (e) {
         return [];
     }
 };
 
 export const getFinancialAdvice = async (transactions) => {
-    for (const modelName of MODELS) {
-        try {
-            const prompt = `
-            You are a highly skilled financial advisor. Analyze the following transaction history and provide 3 specific, actionable, and personalized tips.
-            Transactions: ${JSON.stringify(transactions.slice(0, 50))}
-            
-            OUTPUT FORMAT:
-            Return ONLY a valid JSON array of strings.
-            [ "Tip 1...", "Tip 2...", "Tip 3..." ]
-            `;
+    const prompt = `
+    Analyze these transactions and provide 3 specific financial tips.
+    Transactions: ${JSON.stringify(transactions.slice(0, 50))}
+    Output: JSON array of strings e.g. ["Tip 1", "Tip 2"]. Return ONLY JSON.
+    `;
 
-            const text = await callWorkerAI("generateContent", prompt, modelName);
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanText);
-        } catch (error) {
-            console.error(`Error getting advice with ${modelName}:`, error);
-        }
+    try {
+        const text = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(text) || ["Keep tracking your expenses to gain better insights."];
+    } catch (e) {
+        return ["Could not generate specific advice at this moment."];
     }
-    return ["Could not generate advice at this time."];
 };
 
 // --- 4. NEW AI FEATURES ---
@@ -187,69 +185,51 @@ export const getFinancialAdvice = async (transactions) => {
 // 4.1 Life-Event Predictor
 export const predictLifeEvents = async (transactions) => {
     const prompt = `
-    Analyze this transaction history and predict potential upcoming life events or lifestyle shifts (e.g., "Moving soon", "Planning a trip", "High stress week", "Health kick").
-    Focus on clusters of spending (e.g., suitcases + tickets = Travel; boxes + furniture = Moving).
-    
+    Predict upcoming life events based on spending patterns (e.g. moving, travel).
     Transactions: ${JSON.stringify(transactions.slice(0, 50))}
-
-    OUTPUT: Return a JSON array of strings, e.g., ["Likely planning a vacation", "Increased dining out suggests busy schedule"]. return empty array if no strong signals.
+    Output: JSON array of strings. Return ONLY JSON.
     `;
-    return await safeAIRequest(prompt, []);
+    try {
+        const text = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(text) || [];
+    } catch (e) { return []; }
 };
 
 // 4.2 Warranty Extraction
 export const extractWarranty = async (text) => {
     const prompt = `
-    Extract product warranty details from this text (OCR from receipt).
-    Text: "${text.substring(0, 1000)}"
-
-    OUTPUT: Valid JSON object:
-    {
-        "productName": "Name or Generic Title",
-        "purchaseDate": "YYYY-MM-DD",
-        "warrantyPeriod": "e.g., 1 Year, 2 Years",
-        "expiryDate": "YYYY-MM-DD",
-        "serialNo": "if found, else null"
-    }
-    If no warranty info found, return null.
+    Extract warranty info from text: "${text.substring(0, 1000)}"
+    Output JSON: { productName, purchaseDate, warrantyPeriod, expiryDate, serialNo }. Return null if none.
+    Return ONLY JSON.
     `;
-    return await safeAIRequest(prompt, null);
+    try {
+        const res = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(res);
+    } catch (e) { return null; }
 };
 
 // 4.3 Emotional Spending Detector
 export const analyzeEmotionalSpending = async (transactions) => {
     const prompt = `
-    Analyze timestamps and categories to detect emotional spending patterns.
-    - Late night (11 PM - 4 AM) = "Late Night Impulse"
-    - High frequency food delivery = "Stress Eating"
-    - Rapid succession shopping = "Retail Therapy"
-
+    Detect emotional spending (late night, stress eating).
     Transactions: ${JSON.stringify(transactions.slice(0, 50))}
-
-    OUTPUT: Valid JSON object:
-    {
-        "mood": "Stable" | "Stressed" | "Impulsive" | "Happy",
-        "insight": "Brief explanation of why.",
-        "score": 1-10 (10 is high emotional spending)
-    }
+    Output JSON: { mood, insight, score (1-10) }. Return ONLY JSON.
     `;
-    return await safeAIRequest(prompt, { mood: "Neutral", insight: "Not enough data.", score: 0 });
+    try {
+        const res = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(res) || { mood: "Neutral", insight: "No data", score: 0 };
+    } catch (e) { return { mood: "Neutral", insight: "Error analyzing", score: 0 }; }
 };
 
 // 4.4 Future Projection
 export const detectFutureTrends = async (transactions) => {
     const prompt = `
-    Based on past spending, predict the total monthly expense for the next 6 months.
+    Predict total monthly expense for next 6 months based on history.
     Transactions: ${JSON.stringify(transactions.slice(0, 100))}
-
-    OUTPUT: Valid JSON object:
-    {
-        "projection": [
-            { "month": "Next Month Name", "predictedExpense": 1200 },
-            ... (6 months)
-        ],
-        "analysis": "Brief reason for trend."
-    }
+    Output JSON: { projection: [{month, predictedExpense}], analysis }. Return ONLY JSON.
     `;
-    return await safeAIRequest(prompt, { projection: [], analysis: "Insufficient data." });
+    try {
+        const res = await callOpenRouter([{ role: "user", content: prompt }]);
+        return extractJSON(res) || { projection: [], analysis: "No data" };
+    } catch (e) { return { projection: [], analysis: "Error projecting" }; }
 };

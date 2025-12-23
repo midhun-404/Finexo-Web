@@ -5,7 +5,7 @@ import { Search, Filter, ArrowDownUp, ChevronLeft, ChevronRight } from 'lucide-r
 import { useFinance } from '../context/FinanceContext';
 
 const Transactions = () => {
-    const { transactions } = useFinance();
+    const { transactions, formatCurrency } = useFinance();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
 
@@ -105,7 +105,11 @@ const Transactions = () => {
                                     fontWeight: 'bold',
                                     color: tx.type === 'income' ? 'var(--text-accent)' : 'var(--text-primary)'
                                 }}>
-                                    {tx.amount}
+                                    {(() => {
+                                        const val = parseFloat(tx.amount.replace(/[^0-9.-]+/g, ""));
+                                        const formatted = formatCurrency(Math.abs(val));
+                                        return val > 0 ? `+${formatted}` : `-${formatted}`;
+                                    })()}
                                 </td>
                                 <td style={{ padding: '1.5rem', textAlign: 'center' }}>
                                     <span style={{ color: '#00ff7a', fontSize: '0.9rem' }}>Completed</span>

@@ -4,12 +4,16 @@ import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
 import { Save, Trash2, DollarSign, Bell, Moon, Download, Shield, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { countries } from '../data/countries';
 
 const Settings = () => {
-    const { initialBalance, updateInitialBalance, clearTransactions, transactions } = useFinance();
+    const { initialBalance, updateInitialBalance, clearTransactions, transactions, currency, updateCurrency } = useFinance();
     const { isDarkMode, toggleTheme } = useTheme();
     const [balanceInput, setBalanceInput] = useState(initialBalance);
-    const [currency, setCurrency] = useState('INR');
+    // Local state for currency strictly for UI selection before save? 
+    // Actually, direct update is better for settings usually, or local state initialized from context.
+    // Let's use context directly for simpler "change updates immediately" behavior as per requirements.
+
     const [notifications, setNotifications] = useState(true);
 
     const handleSaveBalance = () => {
@@ -133,8 +137,16 @@ const Settings = () => {
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Currency</label>
                         <select
-                            value={currency}
-                            onChange={(e) => setCurrency(e.target.value)}
+                            value={currency.code}
+                            onChange={(e) => {
+                                const selected = countries.find(c => c.currencyCode === e.target.value);
+                                if (selected) {
+                                    updateCurrency({
+                                        code: selected.currencyCode,
+                                        symbol: selected.currencySymbol
+                                    });
+                                }
+                            }}
                             style={{
                                 width: '100%',
                                 padding: '0.8rem',
@@ -144,9 +156,11 @@ const Settings = () => {
                                 color: 'var(--text-primary)'
                             }}
                         >
-                            <option value="INR">Indian Rupee (₹)</option>
-                            <option value="USD">US Dollar ($)</option>
-                            <option value="EUR">Euro (€)</option>
+                            {countries.map(country => (
+                                <option key={country.code} value={country.currencyCode} style={{ color: 'black' }}>
+                                    {country.name} - {country.currency} ({country.currencySymbol})
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </SettingSection>

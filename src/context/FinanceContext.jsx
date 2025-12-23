@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dbService } from '../services/db';
+import { analysisService } from '../services/analysisService';
 
 const FinanceContext = createContext();
 
@@ -10,12 +11,20 @@ export const FinanceProvider = ({ children }) => {
     const [initialBalance, setInitialBalance] = useState(0);
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
     const [advice, setAdvice] = useState([]);
+    const [currency, setCurrency] = useState({ code: 'USD', symbol: '$' }); // Default Currency
     // New Feature States
     const [warranties, setWarranties] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
     const [predictions, setPredictions] = useState([]);
     const [emotionalInsights, setEmotionalInsights] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
+
+    // Extension States
+    const [leaks, setLeaks] = useState({ totalLeak: 0, leaks: [] });
+    const [healthScore, setHealthScore] = useState({ score: 50, status: 'Warning', details: [] });
+    const [insights, setInsights] = useState([]);
+    const [notifications, setNotifications] = useState([]); // New Notification System
+
     const [isLoading, setIsLoading] = useState(true);
 
     // Load initial data from IndexedDB
@@ -47,6 +56,14 @@ export const FinanceProvider = ({ children }) => {
                 const savedProfile = await dbService.getUserProfile();
                 setUserProfile(savedProfile);
 
+                // Load Currency Preference
+                const savedCurrency = await dbService.getSetting('currency');
+                if (savedCurrency) {
+                    setCurrency(savedCurrency);
+                } else if (savedProfile && savedProfile.currency) {
+                    setCurrency(savedProfile.currency);
+                }
+
             } catch (error) {
                 console.error("Failed to load data from DB:", error);
             } finally {
@@ -55,6 +72,12 @@ export const FinanceProvider = ({ children }) => {
         };
         loadData();
     }, []);
+
+    const formatCurrency = (amount) => {
+        if (amount === undefined || amount === null) return `${currency.symbol}0.00`;
+        const val = typeof amount === 'string' ? parseFloat(amount.replace(/[^0-9.-]+/g, "")) : amount;
+        return `${currency.symbol}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     // Calculate summary whenever transactions or initialBalance change
     useEffect(() => {
@@ -70,7 +93,14 @@ export const FinanceProvider = ({ children }) => {
 
         newSummary.balance = initialBalance + newSummary.income - newSummary.expense;
         setSummary(newSummary);
-    }, [transactions, initialBalance]);
+
+        // Run Analysis Extensions
+        setLeaks(analysisService.detectMoneyLeaks(transactions));
+        setHealthScore(analysisService.calculateHealthScore(newSummary, transactions, subscriptions));
+        setInsights(analysisService.generateInsights(transactions, formatCurrency));
+        setNotifications(analysisService.checkSubscriptionExpiry(subscriptions)); // Check Expiry
+
+    }, [transactions, initialBalance, subscriptions]);
 
     const addTransaction = async (transaction) => {
         await dbService.addTransaction(transaction);
@@ -80,6 +110,21 @@ export const FinanceProvider = ({ children }) => {
     const addTransactions = async (newTransactions) => {
         await dbService.addTransactions(newTransactions);
         setTransactions(prev => [...newTransactions, ...prev]);
+    };
+
+    // New function to replace all transactions (for Monthly View)
+    const replaceTransactions = async (newTransactions) => {
+        // 1. Clear existing transactions from DB
+        const currentTxs = await dbService.getAllTransactions();
+        if (currentTxs && currentTxs.length > 0) {
+            await Promise.all(currentTxs.map(tx => dbService.deleteTransaction(tx.id)));
+        }
+
+        // 2. Add new transactions
+        await dbService.addTransactions(newTransactions);
+
+        // 3. Update State
+        setTransactions(newTransactions);
     };
 
     const clearTransactions = async () => {
@@ -107,6 +152,19 @@ export const FinanceProvider = ({ children }) => {
         setWarranties(prev => [...prev, newItem]);
     };
 
+    const addManualTransaction = async (data) => {
+        const newTx = {
+            id: Date.now().toString(),
+            title: data.title,
+            amount: data.type === 'expense' ? `-${data.amount}` : `+${data.amount}`,
+            date: new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+            type: data.type,
+            category: data.category,
+            isManual: true
+        };
+        await addTransaction(newTx);
+    };
+
     const updateSubscriptionsList = async (subs) => {
         await dbService.updateSubscriptions(subs);
         setSubscriptions(subs);
@@ -122,6 +180,18 @@ export const FinanceProvider = ({ children }) => {
         setUserProfile(null);
     };
 
+    const updateCurrency = async (newCurrency) => {
+        setCurrency(newCurrency);
+        await dbService.saveSetting('currency', newCurrency);
+
+        // Also update profile if exists
+        if (userProfile) {
+            const updatedProfile = { ...userProfile, currency: newCurrency };
+            setUserProfile(updatedProfile);
+            await dbService.saveUserProfile(updatedProfile);
+        }
+    };
+
     return (
         <FinanceContext.Provider value={{
             transactions,
@@ -131,6 +201,7 @@ export const FinanceProvider = ({ children }) => {
             isLoading,
             addTransaction,
             addTransactions,
+            replaceTransactions,
             clearTransactions,
             setFinancialAdvice,
 
@@ -145,7 +216,15 @@ export const FinanceProvider = ({ children }) => {
             predictions,
             setPredictions,
             emotionalInsights,
-            setEmotionalInsights
+            setEmotionalInsights,
+            leaks,
+            healthScore,
+            insights,
+            addManualTransaction,
+            notifications,
+            currency,
+            formatCurrency,
+            updateCurrency
         }}>
             {children}
         </FinanceContext.Provider>

@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useFinance } from '../context/FinanceContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { countries } from '../data/countries';
 
 const Signup = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [selectedCountry, setSelectedCountry] = useState(countries[0]); // Default to first country
     const { signup } = useAuth();
+    const { updateCurrency, loginUser } = useFinance();
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (signup(name, email, password)) {
+            // Set Currency based on Country
+            const newCurrency = {
+                code: selectedCountry.currencyCode,
+                symbol: selectedCountry.currencySymbol
+            };
+            await updateCurrency(newCurrency);
+
+            // Create Profile
+            await loginUser({
+                name,
+                email,
+                country: selectedCountry.name,
+                currency: newCurrency
+            });
+
             navigate('/dashboard');
         }
     };
@@ -101,6 +120,34 @@ const Signup = () => {
                                 fontSize: '1rem'
                             }}
                         />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Country</label>
+                        <select
+                            value={selectedCountry.code}
+                            onChange={(e) => {
+                                const country = countries.find(c => c.code === e.target.value);
+                                setSelectedCountry(country);
+                            }}
+                            required
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                borderRadius: 'var(--radius-md)',
+                                border: 'var(--border-glass)',
+                                background: 'var(--bg-glass)',
+                                color: 'var(--text-primary)',
+                                fontSize: '1rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {countries.map(country => (
+                                <option key={country.code} value={country.code} style={{ color: 'black' }}>
+                                    {country.name} ({country.currencySymbol})
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
